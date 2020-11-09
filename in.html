@@ -1,0 +1,990 @@
+<head>
+</head>
+<body>
+	<style>
+		.corner {
+			position: absolute;
+			height: 10vw;
+			width: 10vw;
+			background-color: black;
+			z-index: 3;
+		}
+		#topleft {
+			top: 0;
+			left: 0;
+		}
+		#topright {
+			top: 0;
+			left: 90vw;
+		}
+		#bottomleft {
+			top: calc(100vh - 10vw);
+			left: 0;
+		}
+		#bottomright {
+			top: calc(100vh - 10vw);
+			left: 90vw;
+		}
+		.path {
+			position: absolute;
+			z-index: 2;
+		}
+		#left {
+			height: 100vh;
+			width: 10vw;
+			top: 0;
+			left: 0;
+		}
+		#right {
+			height: 100vh;
+			width: 10vw;
+			top: 0;
+			left: 90vw;
+		}
+		#top {
+			height: 10vw;
+			width: 100vw;
+			top: 0;
+			left: 0;
+		}
+		#bottom {
+			height: 10vw;
+			width: 100vw;
+			top: calc(100vh - 10vw);
+			left: 0;
+		}
+		#bottom.path.block {
+			animation: pulseone 3s 1;
+			transition: all .5s;
+		}
+		@keyframes pulseone {
+			0% {
+				background-color: black
+			}
+			50% {
+				background-color: #0FFFFF;
+			}
+			100% {
+				background-color: black;
+			}
+		}
+		@keyframes pulse {
+			0% {
+				background-color: black
+			}
+			10% {
+				background-color: #0FFFFF;
+			}
+			20% {
+				background-color: black;
+			}
+			30% {
+				background-color: #0FFFFF;
+			}
+			40% {
+				background-color: black;
+			}
+			65% {
+				background-color: #0FFFFF;
+			}
+			100% {
+				background-color: black;
+			}
+		}
+		#center_text {
+			position: absolute;
+			width: 80vw;
+			height: 20vh;
+			font-size: 100%;
+			text-align: center;
+			top: 40vh;
+			left: 10vw;
+			z-index: 2;
+		}
+		#center {
+			position: absolute;
+			width: 20vw;
+			height: 20vw;
+			top: 20vw;
+			left: 40vw;
+			z-index: 1;
+			overflow: hidden;
+			overflow-wrap: hidden;
+			overflow-x: hidden;
+			overflow-y: hidden;
+			background-color: #0CCCCC;
+			transform-origin: center center;
+			transform: rotate(0deg);
+			-webkit-transform:rotate(0deg); 
+			-moz-transform:rotate(0deg); 
+			-o-transform:rotate(0deg); 
+			transition: all linear .5s;
+		}
+		/*.turnRight {
+			transform-origin: center center;
+			transform: rotate(90deg);
+			-webkit-transform:rotate(9deg); 
+			-moz-transform:rotate(90deg); 
+			-o-transform:rotate(90deg); 
+			transition: all linear .5s;
+		}
+		.turnLeft {
+			transform-origin: center center;
+			transform: rotate(-90deg);
+			-webkit-transform:rotate(-90deg); 
+			-moz-transform:rotate(-90deg); 
+			-o-transform:rotate(-90deg); 
+			transition: all linear .5s;
+		}
+		.turnAround {
+			transform-origin: center center;
+			transform: rotate(180deg);
+			-webkit-transform:rotate(180deg); 
+			-moz-transform:rotate(180deg); 
+			-o-transform:rotate(180deg); 
+			transition: all linear .5s;
+		}*/
+		.oblique {
+			opacity: 100;
+			transition: opacity 1s;
+		}
+		.fade {
+			opacity: 0;
+			transition: opacity 1s;
+		}
+		.path.block.ping {
+			animation: pulse 6s 1;
+		}
+		.block {
+			background-color: black;
+			transition: background-color 1s;
+			z-index: 1;
+		}
+		.move {
+			background-color: #00000036;/*#0FFFFF;*/
+			transition: background-color 1s;
+			z-index: 0;
+		}
+		body {
+			background-color: white;/*#0EEEEE;*/
+		}
+	</style>
+	<div id="topleft" class="corner"></div>
+	<div id="topright" class="corner"></div>
+	<div id="bottomleft" class="corner"></div>
+	<div id="bottomright" class="corner"></div>
+	<div id="bottom" class="path block"></div>
+	<div id="left" class="path block"></div>
+	<div id="top" class="path block"></div>
+	<div id="right" class="path block"></div>
+	<h1 id="center_text"></h1>
+	<div id="center"></div>
+	<script>
+	function rand_from_0(max) {
+		return Math.floor(Math.random()*max);
+	};
+	function Pt(coord, neighbors, decor) {
+		//coord
+		this.coord = coord;
+		//array of coords
+		this.neighbors = neighbors; 
+
+		this.decor = [] || decor;
+	};
+	//cardinaldirs is an array of two cardinal dirs
+	function Decor(src, cardinalDirs) {
+		this.src = src;
+		this.cardinalPlacement = cardinalDirs;
+	};
+	function Maze() {
+		const LENGTH = 9;
+		const WIDTH = 9;
+		const MIN = 0;
+
+		const NORTH = [0,1];
+		const SOUTH = [0,-1];
+		const EAST = [1,0];
+		const WEST = [-1,0];
+		DIRS = [NORTH, SOUTH, EAST, WEST];
+
+		function in_bounds(coord) {
+			return ((coord[0] < LENGTH) && (coord[0] >= MIN) &&
+					(coord[1] < WIDTH) && (coord[1] >= MIN));
+		};
+		console.assert(in_bounds([0,0]));
+		console.assert(!(in_bounds([-1,0])));
+		console.assert(!(in_bounds([0,WIDTH])));
+		function add(coord, coord2) {
+			return coord.map(function(n,i) {
+				return n + coord2[i];
+			});
+		};
+		function eq(coord, coord2) {
+			return ((coord[0] === coord2[0]) && (coord[1] === coord2[1]));
+		};
+		function is_el_in_list(list, el) {
+			return (list.filter(function(list_el) {
+				return eq(list_el, el);
+			}).length > 0)
+		};
+		console.assert([[1,2],[4,4],[5,3]].filter(function(coord) {return eq(coord,[4,4])}).length > 0);
+		console.assert(is_el_in_list([[1,2],[4,4],[5,3]],[4,4]));
+		console.assert(rand_from_0(3) >= 0);
+		console.assert(rand_from_0(0) === 0);
+		console.assert(in_bounds([2,2]) === true);
+		console.assert(eq(add([1,1], [2,3]), [3,4]));
+		//takes an array of dirs (2-d vec), Pt object, and array of Pt objects
+		function avail_dirs(dirs, pt, been_there) {
+			var would_be_in_bounds = DIRS.filter(function(dir) {return in_bounds(add(dir,pt.coord))});
+			console.log("pt coord is " + pt.coord.toString());
+			console.log("would be in bounds " + would_be_in_bounds.toString());
+			console.log("been_there " + been_there.toString());
+			var and_new = would_be_in_bounds.filter(function(dir) {
+				var towards_dir_coord = add(dir,pt.coord);
+				return (!(is_el_in_list(been_there.map((n)=>n.coord), towards_dir_coord)));
+				/*return ((been_there.filter(function(been_pt) { 
+					//console.log("been_pt");
+					//console.log(been_pt);
+					//console.log("going pt");
+					//console.log(add(dir,pt));
+					return eq(add(dir,pt), been_pt) })).length === 0);*/
+			});
+			console.log("and new " + and_new.toString());
+			return and_new;
+		};
+		console.assert(avail_dirs(DIRS, new Pt([2,1],[]), [new Pt([1,1],[])]).length > 0);
+		console.assert(avail_dirs(DIRS, new Pt([2,1],[]), [new Pt([1,1]), new Pt([3,1]), new Pt([2,2]), new Pt([2,0])]).length === 0);
+		console.assert(eq([[1,2], [2,3]].map(function(pt,i) {return add(pt, [1,0])})[0], [2,2]));
+		//randomly return either 1, 2, or 3 neighboring points
+		//Pt, array of
+		function rand_neighbors(pt, prev) {
+			var possible_dirs = avail_dirs(DIRS, pt, prev);
+			var branch3 = Math.random() < .1;
+			console.log("poss dirs " + possible_dirs.toString());
+			console.log(possible_dirs);
+			if (possible_dirs.length > 0) {
+				if (branch3) {
+					//return all new neighbors
+					//->get all possible directions and add them to the current point
+					//not guaranteed to actually branch 3 directions but that's okay
+					return possible_dirs.map(function(dir, i) {
+						return new Pt(add(dir, pt.coord), [pt.coord]);//.concat(dir);
+					});
+				} else {
+					branch = Math.random() < .5;
+					if (branch) {
+						//remove one possible dir
+						possible_dirs.splice(rand_from_0(possible_dirs.length), 1);
+						return possible_dirs.map(function(dir,i) {
+							return new Pt(add(dir,pt.coord), [pt.coord]);//.concat(dir);
+						});
+					} else {
+						var rand_dir = possible_dirs[rand_from_0(possible_dirs.length)];
+						return [new Pt(add(rand_dir, pt.coord), [pt.coord])];//.concat(rand_dir)];
+					}
+				}
+			} else {
+				return [];
+			}
+		};
+		function movementsFromLoc (loc) {
+			var can_move = [];
+			var cant_move = [];
+			DIRS.forEach((dir) => {
+				//the point that going that direction would lead to
+				var next = add(loc.coord, dir);
+				//if this point has neighbors and potential point is in bounds
+				if (loc.neighbors && (in_bounds(next)) && ((is_el_in_list(loc.neighbors, next)))) {
+					can_move.push(dir);
+				} else {
+					cant_move.push(dir);
+				}
+			});
+			var canMove = can_move;
+			console.log("movements from loc");
+			console.log("canmove");
+			console.log(canMove);
+			var cantMove = cant_move;
+			console.log(cantMove);
+			return [can_move, cantMove];
+		};
+		function cardinalDir(dir, arrow) {
+			if (arrow === "up") {
+				//console.log("arrow was up, this.direction");
+				//console.log(this.direction);
+				return (dir);
+			} else if (arrow === "down") {
+				return [-dir[0], -dir[1]];
+			} else if (arrow === "left") {
+				return [-dir[1], dir[0]]; 
+				//trig rotation mat mult - rotate 90deg ccw
+				//https://en.wikipedia.org/wiki/Rotation_matrix
+			} else if (arrow === "right") {
+				//90 deg cw
+				return [dir[1], -dir[0]];
+			}
+		};
+		console.assert(eq(cardinalDir([0,1],"right"), [1,0]));
+		console.assert(eq(cardinalDir([0,1],"left"), [-1,0]));
+		console.assert(eq(cardinalDir([0,1],"down"), [0,-1]));
+		console.assert(eq(cardinalDir([-1,0],"left"), [0,-1]));
+		console.assert(eq(cardinalDir([0,-1],"right"), [-1,0]));
+		///////Decor 
+		var rug;
+		var FTP = new Decor("ftp.png", ["east", "north"]);
+		var crouch = new Decor("crouchingflower.jpg", ["west", "south"]);
+		var chair = new Decor("chair.png", ["center","south"]);
+		var decoration = [FTP, crouch, chair];
+
+		///////Generate the maze!
+		var start = new Pt([rand_from_0(LENGTH), 0], []);
+		var finish = [rand_from_0(LENGTH), rand_from_0(WIDTH)];
+		//console.log("start : " + start.toString());
+		//console.log("finish : " + finish.toString());
+		var next = rand_neighbors(start, []); //list of Pts
+		start.neighbors = next.map((n) => n.coord);
+		var track = [start];
+		var last = start;
+		var i = 0;
+		var no_new_ends_counter = 0;
+
+		console.log("start " + start.coord);
+		console.log(start);
+		console.log("finish " + finish);
+		console.log(next);
+		console.log("start as Pt ");
+		console.log(start);
+
+		while ((next.filter(function(pt) {return eq(pt.coord,finish)})).length === 0) {
+			console.log("loop " + i);
+			//generate new rands for each next
+			var new_ends = [];
+			next.forEach(function(pt) {
+				//get random neighbors that 
+				var prev = track.concat(new_ends).concat(pt.neighbors.map((n) => new Pt(n)));
+				console.log("prev is " + prev.toString());
+				//console.log("pt is " + pt.toString());
+				var neighbs = rand_neighbors(pt, prev);
+				console.log("neighbs are ");
+				console.log(neighbs);
+				new_ends = new_ends.concat(neighbs);
+				pt.neighbors = pt.neighbors.concat((neighbs.map((n) => n.coord)));
+				console.log("adding pt to track :");
+				console.log(pt);
+				track = track.concat(pt);
+			});
+			
+			console.log("finishing loop " + i);
+			console.log("track is " + track.toString());
+			console.log("next is " + next.toString());
+			i = i + 1;
+			if (next.length === 0) {
+				no_new_ends_counter = no_new_ends_counter + 1;
+			} else {
+				next = new_ends;
+			}
+			if (no_new_ends_counter >= 4) {
+				console.log("could not find new ends, ending loop and restarting");
+				var next = rand_neighbors(start, []); //list of Pts
+				start.neighbors = next.map((n) => n.coord);
+				var track = [start];
+				var last = start;
+				var i = 0;
+				var no_new_ends_counter = 0;
+				//break;
+			}
+			//keep growing:
+			//if next.filter eq pt finish, then remove from new ends
+			//if run out of neighbs/no new neighbs, end
+		}
+		if (new_ends) {
+			this.ends = new_ends;
+			new_ends.forEach(function(pt) {
+				track = track.concat(new_ends);
+			});
+		}
+
+		console.log("final track");
+		console.log(track);
+		console.log(track.toString());
+		console.log(track[0]);
+		console.log(track[1]);
+
+		//////add items for decor
+		decoration.forEach(function(item) {
+			if (item.cardinalPlacement[0] === "center") {
+				var rand = rand_from_0(track.length);
+				track[rand].decor.push(item);
+			} else {
+				var cantMoveDirs = [];
+				while (cantMoveDirs.length === 0) {
+					var rand = rand_from_0(track.length);
+					var cantMoveDirs = movementsFromLoc(track[rand])[1];
+				}
+				console.log("cant move dirs ");
+				console.log(cantMoveDirs);
+				//console.log("adding " + item.toString() + " to track index " + rand);
+				//if it's a poster type, ensure that the item is placed on a wall
+				item.cardinalPlacement[0] = cantMoveDirs[rand_from_0(cantMoveDirs.length)];
+				//then pick an orthogonal direction from that dir for its specific placement on that wall (e.g. north wall, pick east or west side)
+				item.cardinalPlacement[1] = cardinalDir(item.cardinalPlacement[0], ["left", "right"][rand_from_0(2)]);
+				console.log("dir 1 ");
+				console.log(item.cardinalPlacement[0]);
+				console.log("dir 2");
+				console.log(item.cardinalPlacement[1]);
+				track[rand].decor.push(item);
+			}
+		});
+
+		var board = Array.from({length: LENGTH}, () => []).map((_,i) => Array.from({length: WIDTH}, (_,j) => new Pt([i,j],[])));
+		console.assert(board.length === LENGTH);
+		console.assert(board[0].length === WIDTH);
+		console.assert(eq(board[0][0].coord,[0,0]));
+		console.assert(eq(board[LENGTH - 1][WIDTH - 1].coord, [LENGTH - 1,WIDTH - 1]));
+		console.log("blank board");
+		console.log(board);
+		track.forEach(function(pt) {
+			//console.log(pt);
+			board[pt.coord[0]][pt.coord[1]] = pt;
+			//console.log(board[pt.coord[0]][pt.coord[1]]);
+		});
+		console.log("board");
+		console.log(board);
+		console.log(board.toString());
+
+		////data
+		this.board = board;
+		this.start = start;
+		this.finish = finish;
+		this.location = start;
+		this.DIRS = DIRS;
+		this.NORTH = NORTH;
+		this.EAST = EAST;
+		this.WEST = WEST;
+		this.SOUTH = SOUTH;
+		this.direction = NORTH;
+		this.canMove = undefined;
+		this.cantMove = undefined;
+		////functions
+		this.add = add;
+		this.eq = eq;
+		this.in_bounds = in_bounds;
+		this.is_el_in_list = is_el_in_list;
+		this.getDirFrom = function(pt) {
+			return pt.slice(2);
+		};
+		console.assert(eq(this.getDirFrom([1,2,3,4]), [3,4]));
+		//directions the player can move
+		this.canMoveDirs = function() {
+			var can_move = [];
+			var cant_move = [];
+			DIRS.forEach((dir) => {
+				//the point that going that direction would lead to
+				var next = add(this.location.coord, dir);
+				//if this point has neighbors and potential point is in bounds
+				if (this.location.neighbors && (in_bounds(next)) && ((is_el_in_list(this.location.neighbors, next)))) {
+					can_move.push(dir);
+				} else {
+					cant_move.push(dir);
+				}
+			});
+			this.canMove = can_move;
+			//console.log("canmove");
+			//console.log(this);
+			//console.log(this.canMove);
+			this.cantMove = cant_move;
+			//console.log(this.cantMove);
+			return can_move;
+		};
+		//console.assert(eq(add(board[start.coord[0]][start.coord[1]],SOUTH), 
+		//	add(board[start.coord[0]][start.coord[1]],start.slice(2))));
+		console.assert(this.canMoveDirs().length > 0);
+		oppDir = function(dir) {
+			return dir.map((val) => -val);
+		};
+		this.firstpersonDirs = {
+			"up": undefined,
+			"down": undefined,
+			"left": undefined,
+			"right": undefined
+		};
+		/*this.updateCardinalDirs = function() {
+			this.up = this.direction;
+			this.down = oppDir(this.direction);
+			this.right = [current_dir[1], -current_dir[0]];
+			this.left = [-current_dir[1], current_dir[0]];
+		};*/
+		this.cardinalDir = function(arrow) {
+			if (arrow === "up") {
+				//console.log("arrow was up, this.direction");
+				//console.log(this.direction);
+				return (this.direction);
+			} else if (arrow === "down") {
+				return [-this.direction[0], -this.direction[1]];
+			} else if (arrow === "left") {
+				return [-this.direction[1], this.direction[0]]; 
+				//trig rotation mat mult - rotate 90deg ccw
+				//https://en.wikipedia.org/wiki/Rotation_matrix
+			} else if (arrow === "right") {
+				//90 deg cw
+				return [this.direction[1], -this.direction[0]];
+			}
+		};
+		this.arrow = function(cardinalDir) {
+			if (maze.eq(this.direction, cardinalDir)) {
+				return "up";
+			} else if (maze.eq(this.direction, [-cardinalDir[0],-cardinalDir[1]])) {
+				return "down";
+			} else if (maze.eq(this.direction, [-cardinalDir[1],cardinalDir[0]])) {
+				return "left";
+			} else if (maze.eq(this.direction, [cardinalDir[1],-cardinalDir[0]])) {
+				return "right";
+			}
+		};
+		this.move = function(arrow) {
+			var new_dir = this.cardinalDir(arrow);
+			var new_pt_loc = add(this.location.coord, new_dir);
+			console.log("new pt location " + new_pt_loc);
+			this.location = board[new_pt_loc[0]][new_pt_loc[1]];
+			console.log("new location");
+			console.log(this.location);
+			console.log(new_dir);
+			this.direction = new_dir;
+			this.canMoveDirs();
+		};
+		/*console.assert(eq(this.cardinalDir("right", NORTH), EAST));
+		console.assert(eq(this.cardinalDir("left", NORTH), WEST));
+		console.assert(eq(this.cardinalDir("down", NORTH), SOUTH));
+		console.assert(eq(this.cardinalDir("right", EAST), SOUTH));
+		console.assert(eq(this.cardinalDir("left", EAST), NORTH));
+		console.assert(eq(this.cardinalDir("right", SOUTH), WEST));
+		console.assert(eq(this.cardinalDir("left", SOUTH), EAST));
+		console.assert(eq(this.cardinalDir("right", WEST), NORTH));
+		console.assert(eq(this.cardinalDir("left", WEST), SOUTH));
+		console.log("right of north " + (this.cardinalDir("right", NORTH).toString()));
+		console.log("left of north " + (this.cardinalDir("left", NORTH).toString()));
+		console.log("right of east " + (this.cardinalDir("right", EAST).toString()));
+		console.log("left of east " + (this.cardinalDir("left", EAST).toString()));*/
+	};
+
+
+	//////END OF MAZE
+
+
+
+
+	////// build maze and render
+
+	var maze = new Maze();
+	console.log("Maze");
+	console.log(maze);
+	console.log("start is " + maze.start.coord.toString());
+
+	moves = maze.canMoveDirs();
+	can_move = maze.canMove;
+	cant_move = maze.cantMove;
+	console.assert(can_move);
+	console.assert(cant_move);
+	//console.log("direction " + maze.direction.toString());
+	//console.log("top " + top.toString());
+	function onArrow(event) {
+		//moves = maze.canMoveDirs();
+		//can_move = moves[0];
+		//cant_move = moves[1];
+		var arrow = undefined;
+		if ((event.key === "ArrowUp") && (maze.is_el_in_list(maze.canMove, maze.cardinalDir("up")))) {
+			maze.move("up");
+			arrow = "up";
+		} else if ((event.key === "ArrowLeft") && (maze.is_el_in_list(maze.canMove, maze.cardinalDir("left")))) {
+			maze.move("left");
+			arrow = "left";
+		} else if ((event.key === "ArrowRight") && (maze.is_el_in_list(maze.canMove, maze.cardinalDir("right")))) {
+			maze.move("right");
+			arrow = "right";
+		} else if ((event.key === "ArrowDown") && (maze.is_el_in_list(maze.canMove, maze.cardinalDir("down")))) {
+			maze.move("down");
+			arrow = "down";
+		}
+		update_scene(arrow);
+	};
+	function onClick(click) {
+		console.log("clicked");
+		var div = click.target;
+		console.log(div);
+		var arrow = undefined;
+		if ((div.id === "top") && (maze.is_el_in_list(maze.canMove, maze.cardinalDir("up")))) {
+			maze.move("up");
+			arrow = "up";
+		} else if ((div.id === "left") && (maze.is_el_in_list(maze.canMove, maze.cardinalDir("left")))) {
+			maze.move("left");
+			arrow = "left";
+		} else if ((div.id === "right") && (maze.is_el_in_list(maze.canMove, maze.cardinalDir("right")))) {
+			maze.move("right");
+			arrow = "right";
+		} else if ((div.id === "bottom") && (maze.is_el_in_list(maze.canMove, maze.cardinalDir("down")))) {
+			maze.move("down");
+			arrow = "down";
+		}
+		update_scene(arrow);
+	};
+	function obj_config_dimensions() {
+		//organize into object
+		//how does this deal with rotations??? make all dims the size of the smallest possible containing length
+		var height = window.innerHeight;
+		var width = window.innerWidth;
+		var BOTTOM_WALL_IMTOP = height - (width*.1) + (width*.01);
+		var TOP_WALL_IMTOP = width*.0125;
+		var HORIZ_WALL_LEFTSIDE = (width/8);
+		var HORIZ_WALL_RIGHTSIDE = (width/8 * 5);
+		var HORIZ_WALL_IMWIDTH = width/4;
+		var HORIZ_WALL_IMHEIGHT = width*.08;
+		var LEFT_WALL_IMLEFT = width*.01;
+		var RIGHT_WALL_IMLEFT = width - width*.1 + width*.01;
+		var VERT_WALL_IMWIDTH = width*.08;
+		var VERT_WALL_IMHEIGHT = height * .25;
+		var VERT_WALL_TOPSIDE = height * .125;
+		var VERT_WALL_BOTSIDE = (height * .125) * 5;
+		var WALL_IMWIDTH = width *.08;
+		var CENTER_IMHEIGHT = width * .125;
+		var CENTER_IMWIDTH = width *.125;
+		var CENTER_TOP = width*.1 + width*.01;
+		var CENTER_BOTTOM = width *.1 + (height - width*.2)*2 + width *.01;
+		var CENTER_LEFT = width*.1 + width*.01;
+		var CENTER_RIGHT = width*.5 + width*.01;
+		var o = {
+			"left": {
+				"up": {
+					"top": VERT_WALL_TOPSIDE,
+					"left": 0,//LEFT_WALL_IMLEFT,
+					"height": WALL_IMWIDTH,//VERT_WALL_IMHEIGHT,
+					"width": WALL_IMWIDTH//VERT_WALL_IMWIDTH
+				}, 
+				"down": {
+					"top": VERT_WALL_BOTSIDE,
+					"left": 0,//LEFT_WALL_IMLEFT,
+					"height": WALL_IMWIDTH,//VERT_WALL_IMHEIGHT,
+					"width": WALL_IMWIDTH//VERT_WALL_IMWIDTH
+				}
+			},
+			"right": {
+				"up": {
+					"top": VERT_WALL_TOPSIDE,
+					"left": RIGHT_WALL_IMLEFT,
+					"height": WALL_IMWIDTH,//VERT_WALL_IMHEIGHT,
+					"width": WALL_IMWIDTH//VERT_WALL_IMWIDTH
+				},
+				"down": {
+					"top": VERT_WALL_BOTSIDE,
+					"left": RIGHT_WALL_IMLEFT,
+					"height": WALL_IMWIDTH,//VERT_WALL_IMHEIGHT,
+					"width": WALL_IMWIDTH//VERT_WALL_IMWIDTH
+				}
+			},
+			"up": {
+				"left": {
+					"top": TOP_WALL_IMTOP,
+					"left": HORIZ_WALL_LEFTSIDE,
+					"height": WALL_IMWIDTH,//HORIZ_WALL_IMHEIGHT,
+					"width": WALL_IMWIDTH//HORIZ_WALL_IMWIDTH
+				}, 
+				"right": {
+					"top": TOP_WALL_IMTOP,
+					"left": HORIZ_WALL_RIGHTSIDE,
+					"height": WALL_IMWIDTH,//HORIZ_WALL_IMHEIGHT,
+					"width": WALL_IMWIDTH//HORIZ_WALL_IMWIDTH
+				}
+
+			}, 
+			"down": {
+				"left": {
+					"top": BOTTOM_WALL_IMTOP,
+					"left": HORIZ_WALL_LEFTSIDE,
+					"height": WALL_IMWIDTH,//HORIZ_WALL_IMHEIGHT,
+					"width": WALL_IMWIDTH//HORIZ_WALL_IMWIDTH
+				},
+				"right": {
+					"top": BOTTOM_WALL_IMTOP,
+					"left": HORIZ_WALL_RIGHTSIDE,
+					"height": WALL_IMWIDTH,//HORIZ_WALL_IMHEIGHT,
+					"width": WALL_IMWIDTH//HORIZ_WALL_IMWIDTH
+				}
+			},
+			"center": {
+				"up": {
+					"left": {
+						"top": CENTER_TOP,
+						"left": CENTER_LEFT,
+						"height": CENTER_IMHEIGHT,
+						"width": CENTER_IMWIDTH
+					}, 
+					"right": {
+						"top": CENTER_TOP,
+						"left": CENTER_RIGHT,
+						"height": CENTER_IMHEIGHT,
+						"width": CENTER_IMWIDTH
+					}
+				}, 
+				"down": {
+					"left": {
+						"top": CENTER_BOTTOM,
+						"left": CENTER_LEFT,
+						"height": CENTER_IMHEIGHT,
+						"width": CENTER_IMWIDTH
+					},
+					"right": {
+						"top": CENTER_BOTTOM,
+						"left": CENTER_RIGHT,
+						"height": CENTER_IMHEIGHT,
+						"width": CENTER_IMWIDTH
+					}
+				},
+			}
+		}
+		return o;
+	};
+	function setRotation(el,deg) {
+		el.style.transform = "rotate(" + deg.toString() + "deg)";
+		el.style.MozTransform = "rotate(" + deg.toString() + "deg)";
+		el.style.WebkitTransform = "rotate(" + deg.toString() + "deg)";
+		el.style.oTransform = "rotate(" + deg.toString() + "deg)";
+	};
+	function update_scene(arrow) {
+		//rotate the center sq to reflect change in direction
+		if (arrow) {
+			console.log("arrow: " + arrow);
+			var center = document.getElementById("center");
+			console.log("center");
+			console.log(center);
+			var current_transform_deg = Number(center.style.transform.replace("rotate(", "").replace("deg)", ""));
+			//console.log(current_transform_deg);
+			var transforms = ["transform", "MozTransform", "WebkitTransform", "oTransform"];
+			function changeTransform(change_in_deg) {
+				center.style.transform = "rotate(" + (current_transform_deg + change_in_deg).toString() + "deg)";
+				center.style.MozTransform = "rotate(" + (current_transform_deg + change_in_deg).toString() + "deg)";
+				center.style.WebkitTransform = "rotate(" + (current_transform_deg + change_in_deg).toString() + "deg)";
+				center.style.oTransform = "rotate(" + (current_transform_deg + change_in_deg).toString() + "deg)";
+				/*transforms.forEach((tf) => {
+					console.log(center.style.tf);
+					console.log(center.style);
+					console.log(tf);
+					center.style.tf = "rotate(" + (current_transform_deg + change_in_deg).toString() + "deg)";
+				});*/
+			};
+			if (arrow === "up") {
+
+			} else if (arrow === "right") {
+				changeTransform(90);
+			} else if (arrow === "left") {
+				changeTransform(-90);
+			} else if (arrow === "down") {
+				changeTransform(-180);
+			}
+		}
+		maze.canMoveDirs();
+		//button push
+		console.log("current direction: ");
+		console.log(maze.direction);
+		maze.canMove.forEach(function(dir) {
+			if (maze.eq(dir, maze.cardinalDir("up"))) {
+				var el = document.getElementById("top");
+				el.className = el.className.replace("block", "move");
+			}
+			if (maze.eq(dir, maze.cardinalDir("left"))) {
+				var el = document.getElementById("left");
+				el.className = el.className.replace("block", "move");
+			}
+			if (maze.eq(dir, maze.cardinalDir("right"))) {
+				var el = document.getElementById("right");
+				el.className = el.className.replace("block", "move");
+			}
+		});
+		/*var cant_move = maze.DIRS.filter((function(dir) {
+			return (!maze.is_el_in_list(can_move, dir));
+		}));*/
+		//console.log(maze.location);
+		//console.log(maze.direction);
+		//console.log(maze.board);
+		console.log("can move");
+		console.log(maze.canMove);
+		console.log("can't move");
+		console.log(maze.cantMove);
+		console.log("can't move dirs");
+		maze.cantMove.forEach(function(dir) {
+			console.log(dir);
+			if (maze.eq(dir, maze.cardinalDir("up"))) {
+				var el = document.getElementById("top");
+				el.className = el.className.replace("move", "block");
+			}
+			if (maze.eq(dir, maze.cardinalDir("left"))) {
+				var el = document.getElementById("left");
+				el.className = el.className.replace("move", "block");
+			}
+			if (maze.eq(dir, maze.cardinalDir("right"))) {
+				var el = document.getElementById("right");
+				el.className = el.className.replace("move", "block");
+			}
+		});
+		console.assert((maze.canMove.length + maze.cantMove.length) === 4);
+
+		if (maze.eq(maze.location.coord, maze.finish)) {
+			document.getElementById("center_text").innerHTML = "Finish";
+		} else if (maze.eq(maze.location.coord, maze.start.coord) && (maze.eq(maze.direction, maze.NORTH))) {
+			document.getElementById("center_text").innerHTML = "Arrow keys or click to move."
+			var el = document.getElementById("bottom");
+			el.className = el.className.replace("move", "block");
+		} else if ((maze.eq(maze.location.coord, maze.start.coord))) {
+			//rugs
+			//vase with a flower
+			//FTP graffiti
+			//at finish whole place turns blue, spawn in new maze
+			document.getElementById("center_text").innerHTML = "Start";
+			/*console.log("in start");
+			console.log(maze.location);
+			console.log(maze.start);
+			var arr = maze.arrow(maze.SOUTH);
+			if (arr === "up") {
+				arr = "top";
+			}
+			console.log(arr);
+			var el = document.getElementById(arr);
+			el.style.animation = "";
+			setTimeout(10,() => {el.style.animation = "pulse 6s 1";})*/
+			//el.className = el.className.concat(" ping");
+			//setTimeout(10000, ()=>{el.className.replace("ping", "")});
+		} else  {
+			document.getElementById("center_text").innerHTML = "";
+			var el = document.getElementById("bottom");
+			el.className = el.className.replace("block", "move");
+		}
+
+
+		var decor = document.getElementsByClassName("object");
+		console.log(decor);
+		if (decor) {
+			//decor.forEach((obj) => {document.body.removeChild(obj)});
+			for (const o of decor) {
+				document.body.removeChild(o);
+			}
+		}
+		if (maze.location.decor) {
+			maze.location.decor.forEach((obj) => {
+				var im = new Image();
+				im.src = obj.src;
+
+				var room_placement = [];
+
+				console.log(obj);
+				console.log(obj.cardinalPlacement);
+				obj.cardinalPlacement.forEach(function(d) {
+					console.log("room placement");
+					console.log(d);
+					if (maze.eq(d,maze.SOUTH)) {
+						room_placement.push(maze.arrow(maze.SOUTH));
+					} else if (maze.eq(d,maze.NORTH)) {
+						room_placement.push(maze.arrow(maze.NORTH));
+					} else if (maze.eq(d,maze.WEST)) {
+						room_placement.push(maze.arrow(maze.WEST));
+					} else if (maze.eq(d,maze.EAST)) {
+						room_placement.push(maze.arrow(maze.EAST));
+					} else if (d === "center") {
+						room_placement.push("center");
+					}
+					/*switch (d) {
+						case "south": {
+							room_placement.push(maze.arrow(maze.SOUTH));
+						}
+						case "north": {
+							room_placement.push(maze.arrow(maze.NORTH));
+						}
+						case "west": {
+							room_placement.push(maze.arrow(maze.WEST));
+						}
+						case "east": {
+							room_placement.push(maze.arrow(maze.EAST));
+							console.log(maze.arrow(maze.EAST));
+						}
+						case "center": {
+							room_placement.push("center");
+						}
+					}*/
+					console.log(room_placement);
+				});
+				console.assert (room_placement.length === 2);
+
+				if (room_placement[0] === "left") {
+					setRotation(im, -90);
+				} else if (room_placement[0] === "right") {
+					setRotation(im, 90);
+				} else if (room_placement[0] === "up") {
+
+				} else if (room_placement[0] === "down") {
+					setRotation(im, 180);
+				} else if (room_placement[0] === "center") {
+					if (room_placement[1] === "left") {
+						setRotation(im, -90);
+					} else if (room_placement[1] === "right") {
+						setRotation(im, 90);
+					} else if (room_placement[1] === "up") {
+
+					} else if (room_placement[1] === "down") {
+						setRotation(im, 180);
+					}
+				}
+
+				/*switch (room_placement[0]) {
+					case "left": {
+						//rotate -90
+						setRotation(im, -90);
+					}
+					case "right": {
+						//rotate 90
+						setRotation(im, 90);
+					}
+					case "up": {
+						//rotate 0
+					}
+					case "down": {
+						//rotate 180
+						setRotation(im, 180);
+					}
+					case "center": {
+						switch (room_placement[1]) {
+							case "left":
+								//rotate -90
+								setRotation(im, -90);
+							case "right":
+								//rotate 90
+								setRotation(im, 90);
+							case "up":
+								//rotate 0
+							case "down":
+								//rotate 180
+								setRotation(im, 180);
+						}
+					}
+				};*/
+
+				var placement_styles = obj_config_dimensions();
+				im.style.top = placement_styles[room_placement[0]][room_placement[1]]["top"];
+				im.style.left = placement_styles[room_placement[0]][room_placement[1]]["left"];
+				im.style.height = placement_styles[room_placement[0]][room_placement[1]]["height"];
+				im.style.width = placement_styles[room_placement[0]][room_placement[1]]["width"];
+				im.style.zIndex = 10;
+				im.style.position = "absolute";
+
+				im.className = "object";
+
+				document.body.appendChild(im);
+			});
+		}
+	};
+	//console.log(maze.canMove);
+	update_scene();
+
+	document.addEventListener('keydown', onArrow);
+	document.getElementById("top").addEventListener("click", onClick);
+	document.getElementById("left").addEventListener("click", onClick);
+	document.getElementById("right").addEventListener("click", onClick);
+	document.getElementById("bottom").addEventListener("click", onClick);
+	</script>
+</body>
