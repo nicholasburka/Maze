@@ -165,6 +165,9 @@
 			transition: background-color 1s;
 			z-index: 1;
 		}
+		.block.pulse {
+			animation: pulse 3s 1;
+		}
 		.move {
 			background-color: #00000036;/*#0FFFFF;*/
 			transition: background-color 1s;
@@ -203,9 +206,9 @@
 		this.src = src;
 		this.cardinalPlacement = [] || cardinalDirs;
 	};
-	function Maze() {
-		const LENGTH = 9;
-		const WIDTH = 9;
+	function Maze(length, width) {
+		const LENGTH = length || 9;
+		const WIDTH = width || 9;
 		const MIN = 0;
 
 		const NORTH = [0,1];
@@ -342,6 +345,7 @@
 		var last = start;
 		var i = 0;
 		var no_new_ends_counter = 0;
+		var rebuild_counter = 0;
 
 		console.log("start " + start.coord);
 		console.log(start);
@@ -357,8 +361,8 @@
 			next.forEach(function(pt) {
 				//get random neighbors that 
 				var prev = track.concat(new_ends).concat(pt.neighbors.map((n) => new Pt(n)));
-				console.log("prev is " + prev.toString());
-				//console.log("pt is " + pt.toString());
+				//console.log("prev is " + prev.toString());
+				console.log("pt is " + pt.toString());
 				var neighbs = rand_neighbors(pt, prev);
 				console.log("neighbs are ");
 				console.log(neighbs);
@@ -379,25 +383,27 @@
 				next = new_ends;
 			}
 			if (no_new_ends_counter >= 4) {
-				/*console.log("could not find new ends, ending loop and restarting");
+				console.log("could not find new ends, ending loop and restarting");
 				var next = rand_neighbors(start, []); //list of Pts
 				start.neighbors = next.map((n) => n.coord);
 				var track = [start];
 				var last = start;
 				var i = 0;
-				var no_new_ends_counter = 0;*/
-				console.log("could not find new ends, ending loop");
+				var no_new_ends_counter = 0;
+			}
+			if (rebuild_counter > 1) {
+				console.log("maze recreation failed too many times, ending");
 				break;
 			}
-			//keep growing:
-			//if next.filter eq pt finish, then remove from new ends
-			//if run out of neighbs/no new neighbs, end
 		}
 		if (new_ends) {
 			this.ends = new_ends;
 			new_ends.forEach(function(pt) {
 				track = track.concat(new_ends);
 			});
+		}
+		if (rebuild_counter > 1 ) {
+			finish = track[track.length - 1].coord;
 		}
 
 		console.log("final track");
@@ -588,8 +594,9 @@
 
 
 	////// build maze and render
-
-	var maze = new Maze();
+	var MAZE_WIDTH = 4;
+	var MAZE_HEIGHT = 4;
+	var maze = new Maze(MAZE_WIDTH, MAZE_HEIGHT);
 	console.log("Maze");
 	console.log(maze);
 	console.log("start is " + maze.start.coord.toString());
@@ -606,20 +613,27 @@
 		//can_move = moves[0];
 		//cant_move = moves[1];
 		var arrow = undefined;
+		var change = false;
 		if ((event.key === "ArrowUp") && (maze.is_el_in_list(maze.canMove, maze.cardinalDir("up")))) {
 			maze.move("up");
 			arrow = "up";
+			change = true;
 		} else if ((event.key === "ArrowLeft") && (maze.is_el_in_list(maze.canMove, maze.cardinalDir("left")))) {
 			maze.move("left");
 			arrow = "left";
+			change = true;
 		} else if ((event.key === "ArrowRight") && (maze.is_el_in_list(maze.canMove, maze.cardinalDir("right")))) {
 			maze.move("right");
 			arrow = "right";
+			change = true;
 		} else if ((event.key === "ArrowDown") && (maze.is_el_in_list(maze.canMove, maze.cardinalDir("down")))) {
 			maze.move("down");
 			arrow = "down";
+			change = true;
 		}
-		update_scene(arrow);
+		if (change) {
+			update_scene(arrow);
+		}
 	};
 	//console.assert()
 	function onClick(click) {
@@ -723,37 +737,7 @@
 					"height": WALL_IMWIDTH,//HORIZ_WALL_IMHEIGHT,
 					"width": WALL_IMWIDTH//HORIZ_WALL_IMWIDTH
 				}
-			},
-			/*"center": {
-				"up": {
-					"left": {
-						"top": CENTER_TOP,
-						"left": CENTER_LEFT,
-						"height": CENTER_IMHEIGHT,
-						"width": CENTER_IMWIDTH
-					}, 
-					"right": {
-						"top": CENTER_TOP,
-						"left": CENTER_RIGHT,
-						"height": CENTER_IMHEIGHT,
-						"width": CENTER_IMWIDTH
-					}
-				}, 
-				"down": {
-					"left": {
-						"top": CENTER_BOTTOM,
-						"left": CENTER_LEFT,
-						"height": CENTER_IMHEIGHT,
-						"width": CENTER_IMWIDTH
-					},
-					"right": {
-						"top": CENTER_BOTTOM,
-						"left": CENTER_RIGHT,
-						"height": CENTER_IMHEIGHT,
-						"width": CENTER_IMWIDTH
-					}
-				},
-			}*/
+			}
 		}
 		return o;
 	};
@@ -831,10 +815,32 @@
 
 		//   Finish
 		if (maze.eq(maze.location.coord, maze.finish)) {
-			document.getElementById("center_text").innerHTML = "Finish";
+			//document.getElementById("center_text").innerHTML = "Finish";
+			center.style.transition = "all ease-in 3s";
+			changeTransform(3600);
+			var paths = document.getElementsByClassName("path");
+			for (var p of paths) {
+				p.className = p.className.replace("move", "block");
+				p.className = p.className + " pulse";
+			}
+			MAZE_WIDTH = MAZE_WIDTH + 1;
+			MAZE_HEIGHT = MAZE_HEIGHT + 1;
+			maze = new Maze(MAZE_WIDTH, MAZE_HEIGHT);
+			setTimeout(() => {
+				center.style.transition = "all linear .5s";
+				for (var p of paths) {
+					p.className = p.className.replace("pulse", "");
+				}
+				console.log("new maze, updating scene");
+				update_scene();
+			}, 3000);
 		//   Start
 		} else if (maze.eq(maze.location.coord, maze.start.coord) && (maze.eq(maze.direction, maze.NORTH))) {
-			document.getElementById("center_text").innerHTML = "Arrow keys or click to move."
+			if (MAZE_HEIGHT === 4) {
+				document.getElementById("center_text").innerHTML = "Arrow keys or click to move.";
+			} else {
+				document.getElementById("center_text").innerHTML = "Maze has grown.";
+			}
 			var el = document.getElementById("bottom");
 			el.className = el.className.replace("move", "block");
 		//    
@@ -871,9 +877,13 @@
 		console.log(decor);
 		if (decor) {
 			// for loop iterates through HTMLCollection (does not have forEach)
+			var a = [];
 			for (var o of decor) {
-				document.body.removeChild(o);
+				console.log("removing decor ob");
+				console.log(o);
+				a.push(o);
 			}
+			a.map((el) => {document.body.removeChild(el)});
 		}
 		// Add new decor
 		if (maze.location.decor) {
