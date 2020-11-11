@@ -66,8 +66,8 @@
 			left: 0;
 		}
 		#bottom.path.block {
-			animation: pulseone 3s 1;
-			transition: all .5s;
+			/*animation: pulseone 3s 1;
+			transition: all .5s;*/
 		}
 
 		@keyframes pulseone {
@@ -125,11 +125,14 @@
 			z-index: 2;
 		}
 		#center {
-			position: absolute;
+			/*position: absolute;*/
+			display: flex;
+			justify-content: center;
+			align-self: center;
 			width: 20vw;
 			height: 20vw;
-			top: 20vw;
-			left: 40vw;
+			/*top: 20vw;
+			left: 40vw;*/
 			z-index: 1;
 			overflow: hidden;
 			overflow-wrap: hidden;
@@ -145,6 +148,14 @@
 		}
 		#center_container {
 			transition: all linear .5s;
+			position: absolute;
+			display: flex;
+			top: 10vw;
+			left: 10vw;
+			width: 80vw;
+			height: calc(100vh - 20vw);
+			align-items: center center;
+			justify-content: center;
 		}
 		.oblique {
 			opacity: 100;
@@ -166,7 +177,7 @@
 			z-index: 1;
 		}
 		.block.pulse {
-			animation: pulse 3s 1;
+			animation: pulseone 3s 1;
 		}
 		.move {
 			background-color: #00000036;/*#0FFFFF;*/
@@ -300,7 +311,7 @@
 				//the point that going that direction would lead to
 				var next = add(loc.coord, dir);
 				//if this point has neighbors and potential point is in bounds
-				if (loc.neighbors && (in_bounds(next)) && ((is_el_in_list(loc.neighbors, next)))) {
+				if (loc.neighbors && ((is_el_in_list(loc.neighbors, next)))) {
 					can_move.push(dir);
 				} else {
 					cant_move.push(dir);
@@ -340,12 +351,17 @@
 		var start = new Pt([rand_from_0(LENGTH), 0], []);
 		var finish = [rand_from_0(LENGTH), rand_from_0(WIDTH)];
 		var next = rand_neighbors(start, []); //list of Pts
+		next.forEach((pt) => {
+			console.assert(pt.neighbors.length > 0);
+			if (pt.neighbors.length === 0 ) {
+				throw "pt.neighbors.length === 0";
+			}
+		});
 		start.neighbors = next.map((n) => n.coord);
 		var track = [start];
 		var last = start;
 		var i = 0;
 		var no_new_ends_counter = 0;
-		var rebuild_counter = 0;
 
 		console.log("start " + start.coord);
 		console.log(start);
@@ -382,28 +398,21 @@
 			} else {
 				next = new_ends;
 			}
+
 			if (no_new_ends_counter >= 4) {
-				console.log("could not find new ends, ending loop and restarting");
-				var next = rand_neighbors(start, []); //list of Pts
-				start.neighbors = next.map((n) => n.coord);
-				var track = [start];
-				var last = start;
-				var i = 0;
-				var no_new_ends_counter = 0;
-			}
-			if (rebuild_counter > 1) {
-				console.log("maze recreation failed too many times, ending");
+				console.log("could not find new ends, reassigning finish and ending loop");
+				finish = track[track.length - 1].coord;
 				break;
 			}
 		}
+		next.forEach(function (pt) {
+			track = track.concat(pt);
+		});
 		if (new_ends) {
 			this.ends = new_ends;
 			new_ends.forEach(function(pt) {
 				track = track.concat(new_ends);
 			});
-		}
-		if (rebuild_counter > 1 ) {
-			finish = track[track.length - 1].coord;
 		}
 
 		console.log("final track");
@@ -412,45 +421,49 @@
 		console.log(track[0]);
 		console.log(track[1]);
 
-		var board = Array.from({length: LENGTH}, () => []).map((_,i) => Array.from({length: WIDTH}, (_,j) => new Pt([i,j],[])));
-		console.assert(board.length === LENGTH);
-		console.assert(board[0].length === WIDTH);
-		console.assert(eq(board[0][0].coord,[0,0]));
-		console.assert(eq(board[LENGTH - 1][WIDTH - 1].coord, [LENGTH - 1,WIDTH - 1]));
-		console.log("blank board");
-		console.log(board);
-		track.forEach(function(pt) {
-			console.assert(pt.neighbors.length > 0);
-			if (pt.neighbors.length === 0) {
-				console.log(pt);
-				throw "THIS PT DOES NOT HAVE A NEIGHBOR";
-			}
-			//console.log(pt);
-			board[pt.coord[0]][pt.coord[1]] = pt;
-			//console.log(board[pt.coord[0]][pt.coord[1]]);
-		});
-		console.log("board");
-		console.log(board);
-		console.log(board.toString());
 
 		///////Decor 
 		var rug;
-		var FTP = new Decor("ftp.png");
-		var crouch = new Decor("crouchingflower.jpg");
+		var ftp = new Decor("ftp.png");
+		var BLM = new Decor("blm.png");
+		var crouch = new Decor("crouchingflower.png");
+		//var eye = new Decor("eye.png");
+		var chair = new Decor("chair.png");
+		var tree = new Decor("tree-x.png");
+		var brain = new Decor("brain.png");
 		//var chair = new Decor("chair.png", ["center",SOUTH]);
-		var decoration = [FTP, crouch];//, chair];
-
+		var decoration = [ftp, BLM, crouch, chair, tree, brain];
+		var num_decor = ((width - 3) >= 6) ? 6 : (width - 3);
+		var used_decor = [];
+		while (used_decor.length < num_decor) {
+			var it = decoration.splice(rand_from_0(decoration.length), 1);
+			console.log("decor");
+			console.log(it);
+			used_decor.push(it[0]);
+		}
+		var decor_inds = [];
 		//////add items for decor
-		decoration.forEach(function(item) {
+		used_decor.forEach(function(item) {
 			/*if (item.cardinalPlacement[0] === "center") {
 				var rand = rand_from_0(track.length);
 				track[rand].decor.push(item);
 			} else {*/
 			var cantMoveDirs = [];
-			while (cantMoveDirs.length === 0) {
+			var new_place = false;
+			var neighb_check = false;
+			//make sure an image is placed in a place with no other images and with walls, esp intersections
+			while ((cantMoveDirs.length === 0) || (new_place === false) || (neighb_check === false)) {
 				var rand = rand_from_0(track.length);
 				var cantMoveDirs = movementsFromLoc(track[rand])[1];
+				new_place = (decor_inds.indexOf(rand) === (-1));
+				//make it more likely that an image is placed on an intersection
+				if (track[rand].neighbors.length > 2) {
+					neighb_check = true;
+				} else {
+					neighb_check = (rand_from_0(4) >= 2);
+				}
 			}
+			decor_inds.push(rand);
 			console.log("adding " + item.toString() + " to track index " + rand);
 			track[rand];
 			console.log("cant move dirs ");
@@ -465,6 +478,31 @@
 			console.log(item.cardinalPlacement[1]);
 			track[rand].decor.push(item);
 		});
+
+
+		///////Board
+
+		var board = Array.from({length: LENGTH}, () => []).map((_,i) => Array.from({length: WIDTH}, (_,j) => new Pt([i,j],[])));
+		console.assert(board.length === LENGTH);
+		console.assert(board[0].length === WIDTH);
+		console.assert(eq(board[0][0].coord,[0,0]));
+		console.assert(eq(board[LENGTH - 1][WIDTH - 1].coord, [LENGTH - 1,WIDTH - 1]));
+		console.log("blank board");
+		console.log(board);
+		//Assign each pt in board its values
+		track.forEach(function(pt) {
+			console.assert(pt.neighbors.length > 0);
+			if (pt.neighbors.length === 0) {
+				console.log(pt);
+				throw "THIS PT DOES NOT HAVE A NEIGHBOR";
+			}
+			//console.log(pt);
+			board[pt.coord[0]][pt.coord[1]] = pt;
+			//console.log(board[pt.coord[0]][pt.coord[1]]);
+		});
+		console.log("board");
+		console.log(board);
+		console.log(board.toString());
 
 		////data
 		this.board = board;
@@ -685,13 +723,13 @@
 				"up": {
 					"top": VERT_WALL_TOPSIDE,
 					"left": 0,//LEFT_WALL_IMLEFT,
-					"height": WALL_IMWIDTH,//VERT_WALL_IMHEIGHT,
+					"height": "auto",//VERT_WALL_IMHEIGHT,
 					"width": WALL_IMWIDTH//VERT_WALL_IMWIDTH
 				}, 
 				"down": {
 					"top": VERT_WALL_BOTSIDE,
 					"left": 0,//LEFT_WALL_IMLEFT,
-					"height": WALL_IMWIDTH,//VERT_WALL_IMHEIGHT,
+					"height": "auto",//VERT_WALL_IMHEIGHT,
 					"width": WALL_IMWIDTH//VERT_WALL_IMWIDTH
 				}
 			},
@@ -699,13 +737,13 @@
 				"up": {
 					"top": VERT_WALL_TOPSIDE,
 					"left": RIGHT_WALL_IMLEFT,
-					"height": WALL_IMWIDTH,//VERT_WALL_IMHEIGHT,
+					"height": "auto",//VERT_WALL_IMHEIGHT,
 					"width": WALL_IMWIDTH//VERT_WALL_IMWIDTH
 				},
 				"down": {
 					"top": VERT_WALL_BOTSIDE,
 					"left": RIGHT_WALL_IMLEFT,
-					"height": WALL_IMWIDTH,//VERT_WALL_IMHEIGHT,
+					"height": "auto",//VERT_WALL_IMHEIGHT,
 					"width": WALL_IMWIDTH//VERT_WALL_IMWIDTH
 				}
 			},
@@ -714,13 +752,13 @@
 					"top": TOP_WALL_IMTOP,
 					"left": HORIZ_WALL_LEFTSIDE,
 					"height": WALL_IMWIDTH,//HORIZ_WALL_IMHEIGHT,
-					"width": WALL_IMWIDTH//HORIZ_WALL_IMWIDTH
+					"width": "auto"//HORIZ_WALL_IMWIDTH
 				}, 
 				"right": {
 					"top": TOP_WALL_IMTOP,
 					"left": HORIZ_WALL_RIGHTSIDE,
 					"height": WALL_IMWIDTH,//HORIZ_WALL_IMHEIGHT,
-					"width": WALL_IMWIDTH//HORIZ_WALL_IMWIDTH
+					"width": "auto"//HORIZ_WALL_IMWIDTH
 				}
 
 			}, 
@@ -729,13 +767,13 @@
 					"top": BOTTOM_WALL_IMTOP,
 					"left": HORIZ_WALL_LEFTSIDE,
 					"height": WALL_IMWIDTH,//HORIZ_WALL_IMHEIGHT,
-					"width": WALL_IMWIDTH//HORIZ_WALL_IMWIDTH
+					"width": "auto"//HORIZ_WALL_IMWIDTH
 				},
 				"right": {
 					"top": BOTTOM_WALL_IMTOP,
 					"left": HORIZ_WALL_RIGHTSIDE,
 					"height": WALL_IMWIDTH,//HORIZ_WALL_IMHEIGHT,
-					"width": WALL_IMWIDTH//HORIZ_WALL_IMWIDTH
+					"width": "auto"//HORIZ_WALL_IMWIDTH
 				}
 			}
 		}
@@ -816,7 +854,7 @@
 		//   Finish
 		if (maze.eq(maze.location.coord, maze.finish)) {
 			//document.getElementById("center_text").innerHTML = "Finish";
-			center.style.transition = "all ease-in 3s";
+			center.style.transition = "all ease-in-out 3s";
 			changeTransform(3600);
 			var paths = document.getElementsByClassName("path");
 			for (var p of paths) {
@@ -842,7 +880,7 @@
 				document.getElementById("center_text").innerHTML = "Maze has grown.";
 			}
 			var el = document.getElementById("bottom");
-			el.className = el.className.replace("move", "block");
+			el.className = el.className.replace("move", "block pulse");
 		//    
 		} else if ((maze.eq(maze.location.coord, maze.start.coord))) {
 			//rugs
