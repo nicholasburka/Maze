@@ -479,18 +479,21 @@
 				is_finish = eq(track[rand].coord,finish);
 			}
 			decor_inds.push(rand);
-			console.log("adding " + item.toString() + " to track index " + rand);
-			track[rand];
-			console.log("cant move dirs ");
-			console.log(cantMoveDirs);
+	
 			//if it's a poster type, ensure that the item is placed on a wall
 			item.cardinalPlacement[0] = cantMoveDirs[rand_from_0(cantMoveDirs.length)];
 			//then pick an orthogonal direction from that dir for its specific placement on that wall (e.g. north wall, pick east or west side)
 			item.cardinalPlacement[1] = cardinalDir(item.cardinalPlacement[0], ["left", "right"][rand_from_0(2)]);
+
+			console.log("adding " + item.toString() + " to track index " + rand);
+			track[rand];
+			/*console.log("cant move dirs ");
+			console.log(cantMoveDirs);
 			console.log("dir 1 ");
 			console.log(item.cardinalPlacement[0]);
 			console.log("dir 2");
-			console.log(item.cardinalPlacement[1]);
+			console.log(item.cardinalPlacement[1]);*/
+
 			track[rand].decor.push(item);
 		});
 
@@ -508,11 +511,9 @@
 			console.assert(pt.neighbors.length > 0);
 			if (pt.neighbors.length === 0) {
 				console.log(pt);
-				throw "THIS PT DOES NOT HAVE A NEIGHBOR";
+				throw "THIS PT DOESN'T HAVE A NEIGHBOR";
 			}
-			//console.log(pt);
 			board[pt.coord[0]][pt.coord[1]] = pt;
-			//console.log(board[pt.coord[0]][pt.coord[1]]);
 		});
 		console.log("board");
 		console.log(board);
@@ -541,7 +542,7 @@
 		};
 		console.assert(eq(this.getDirFrom([1,2,3,4]), [3,4]));
 		//directions the player can move
-		this.canMoveDirs = function() {
+		this.updateMoveDirs = function() {
 			var can_move = [];
 			var cant_move = [];
 			DIRS.forEach((dir) => {
@@ -555,38 +556,13 @@
 				}
 			});
 			this.canMove = can_move;
-			//console.log("canmove");
-			//console.log(this);
-			//console.log(this.canMove);
 			this.cantMove = cant_move;
-			//console.log(this.cantMove);
 			return can_move;
 		};
-		console.assert(this.canMoveDirs().length > 0);
-		oppDir = function(dir) {
-			return dir.map((val) => -val);
-		};
-		this.firstpersonDirs = {
-			"up": undefined,
-			"down": undefined,
-			"left": undefined,
-			"right": undefined
-		};
+		this.updateMoveDirs();
+		console.assert(this.canMove.length > 0);
 		this.cardinalDir = function(arrow) {
-			if (arrow === "up") {
-				//console.log("arrow was up, this.direction");
-				//console.log(this.direction);
-				return (this.direction);
-			} else if (arrow === "down") {
-				return [-this.direction[0], -this.direction[1]];
-			} else if (arrow === "left") {
-				return [-this.direction[1], this.direction[0]]; 
-				//trig rotation mat mult - rotate 90deg ccw
-				//https://en.wikipedia.org/wiki/Rotation_matrix
-			} else if (arrow === "right") {
-				//90 deg cw
-				return [this.direction[1], -this.direction[0]];
-			}
+			return cardinalDir(this.direction, arrow);
 		};
 		this.arrow = function(cardinalDir) {
 			if (eq(this.direction, cardinalDir)) {
@@ -607,14 +583,15 @@
 		this.move = function(arrow) {
 			var new_dir = this.cardinalDir(arrow);
 			var new_pt_loc = add(this.location.coord, new_dir);
-			console.log("new pt location " + new_pt_loc);
 			this.location = board[new_pt_loc[0]][new_pt_loc[1]];
+			this.direction = new_dir;
+			this.updateMoveDirs();
+
+			console.log("new pt location " + new_pt_loc);
 			console.log("new location obj");
 			console.log(this.location);
 			console.log("new direction");
 			console.log(new_dir);
-			this.direction = new_dir;
-			this.canMoveDirs();
 		};
 	};
 
@@ -632,7 +609,7 @@
 	console.log(maze);
 	console.log("start is " + maze.start.coord.toString());
 
-	moves = maze.canMoveDirs();
+	moves = maze.updateMoveDirs();
 	can_move = maze.canMove;
 	cant_move = maze.cantMove;
 	console.assert(can_move);
