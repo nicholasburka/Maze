@@ -65,11 +65,6 @@
 			top: calc(100vh - 10vw);
 			left: 0;
 		}
-		#bottom.path.block {
-			/*animation: pulseone 3s 1;
-			transition: all .5s;*/
-		}
-
 		@keyframes pulseone {
 			0% {
 				background-color: black
@@ -125,7 +120,6 @@
 			z-index: 2;
 		}
 		#center {
-			/*position: absolute;*/
 			display: flex;
 			justify-content: center;
 			align-self: center;
@@ -133,8 +127,6 @@
 			height: 20vw;
 			max-width: calc(100vh - 25vw);
 			max-height: calc(100vh - 25vw);
-			/*top: 20vw;
-			left: 40vw;*/
 			z-index: 1;
 			overflow: hidden;
 			overflow-wrap: hidden;
@@ -162,14 +154,12 @@
 		.rug {
 			max-width: calc(100vh - 25vw);
 			max-height: calc(100vh - 25vw);
-			/*opacity: 100;
-			transition: opacity .5s;*/
 			animation: fadein .5s 1;
 		}
 		.flower {
-			animation: appear 3s 1;
+			animation: appear_disappear 3s 1;
 		}
-		@keyframes appear {
+		@keyframes appear_disappear {
 			0% {
 				opacity: 0%;
 			}
@@ -194,9 +184,9 @@
 		.path.block.ping {
 			animation: pulse 6s 1;
 		}
-		.up {
+		/*.up {
 			animation: budge .5s 1;
-		}
+		}*/
 		.block {
 			background-color: black;
 			transition: background-color 1s;
@@ -311,7 +301,7 @@
 					//->get all possible directions and add them to the current point
 					//not guaranteed to actually branch 3 directions but that's okay
 					return possible_dirs.map(function(dir, i) {
-						return new Pt(add(dir, pt.coord), [pt.coord]);//.concat(dir);
+						return new Pt(add(dir, pt.coord), [pt.coord]);
 					});
 				} else {
 					branch = Math.random() < .5;
@@ -319,11 +309,11 @@
 						//remove one possible dir
 						possible_dirs.splice(rand_from_0(possible_dirs.length), 1);
 						return possible_dirs.map(function(dir,i) {
-							return new Pt(add(dir,pt.coord), [pt.coord]);//.concat(dir);
+							return new Pt(add(dir,pt.coord), [pt.coord]);
 						});
 					} else {
 						var rand_dir = possible_dirs[rand_from_0(possible_dirs.length)];
-						return [new Pt(add(rand_dir, pt.coord), [pt.coord])];//.concat(rand_dir)];
+						return [new Pt(add(rand_dir, pt.coord), [pt.coord])];
 					}
 				}
 			} else {
@@ -353,8 +343,6 @@
 		};
 		function cardinalDir(dir, arrow) {
 			if (arrow === "up") {
-				//console.log("arrow was up, this.direction");
-				//console.log(this.direction);
 				return (dir);
 			} else if (arrow === "down") {
 				return [-dir[0], -dir[1]];
@@ -473,15 +461,12 @@
 		var decor_inds = [];
 		//////add items for decor
 		used_decor.forEach(function(item) {
-			/*if (item.cardinalPlacement[0] === "center") {
-				var rand = rand_from_0(track.length);
-				track[rand].decor.push(item);
-			} else {*/
 			var cantMoveDirs = [];
 			var new_place = false;
 			var neighb_check = false;
+			var is_finish = true;
 			//make sure an image is placed in a place with no other images and with walls, esp intersections
-			while ((cantMoveDirs.length === 0) || (new_place === false) || (neighb_check === false)) {
+			while ((cantMoveDirs.length === 0) || (new_place === false) || (neighb_check === false) || (is_finish === true)) {
 				var rand = rand_from_0(track.length);
 				var cantMoveDirs = movementsFromLoc(track[rand])[1];
 				new_place = (decor_inds.indexOf(rand) === (-1));
@@ -489,8 +474,9 @@
 				if (track[rand].neighbors.length > 2) {
 					neighb_check = true;
 				} else {
-					neighb_check = (rand_from_0(4) >= 2);
+					neighb_check = (rand_from_0(2) >= 1);
 				}
+				is_finish = eq(track[rand].coord,finish);
 			}
 			decor_inds.push(rand);
 			console.log("adding " + item.toString() + " to track index " + rand);
@@ -576,8 +562,6 @@
 			//console.log(this.cantMove);
 			return can_move;
 		};
-		//console.assert(eq(add(board[start.coord[0]][start.coord[1]],SOUTH), 
-		//	add(board[start.coord[0]][start.coord[1]],start.slice(2))));
 		console.assert(this.canMoveDirs().length > 0);
 		oppDir = function(dir) {
 			return dir.map((val) => -val);
@@ -588,12 +572,6 @@
 			"left": undefined,
 			"right": undefined
 		};
-		/*this.updateCardinalDirs = function() {
-			this.up = this.direction;
-			this.down = oppDir(this.direction);
-			this.right = [current_dir[1], -current_dir[0]];
-			this.left = [-current_dir[1], current_dir[0]];
-		};*/
 		this.cardinalDir = function(arrow) {
 			if (arrow === "up") {
 				//console.log("arrow was up, this.direction");
@@ -638,19 +616,6 @@
 			this.direction = new_dir;
 			this.canMoveDirs();
 		};
-		/*console.assert(eq(this.cardinalDir("right", NORTH), EAST));
-		console.assert(eq(this.cardinalDir("left", NORTH), WEST));
-		console.assert(eq(this.cardinalDir("down", NORTH), SOUTH));
-		console.assert(eq(this.cardinalDir("right", EAST), SOUTH));
-		console.assert(eq(this.cardinalDir("left", EAST), NORTH));
-		console.assert(eq(this.cardinalDir("right", SOUTH), WEST));
-		console.assert(eq(this.cardinalDir("left", SOUTH), EAST));
-		console.assert(eq(this.cardinalDir("right", WEST), NORTH));
-		console.assert(eq(this.cardinalDir("left", WEST), SOUTH));
-		console.log("right of north " + (this.cardinalDir("right", NORTH).toString()));
-		console.log("left of north " + (this.cardinalDir("left", NORTH).toString()));
-		console.log("right of east " + (this.cardinalDir("right", EAST).toString()));
-		console.log("left of east " + (this.cardinalDir("left", EAST).toString()));*/
 	};
 
 
@@ -672,12 +637,8 @@
 	cant_move = maze.cantMove;
 	console.assert(can_move);
 	console.assert(cant_move);
-	//console.log("direction " + maze.direction.toString());
-	//console.log("top " + top.toString());
+
 	function onArrow(event) {
-		//moves = maze.canMoveDirs();
-		//can_move = moves[0];
-		//cant_move = moves[1];
 		var arrow = undefined;
 		var change = false;
 		if ((event.key === "ArrowUp") && (maze.is_el_in_list(maze.canMove, maze.cardinalDir("up")))) {
@@ -701,7 +662,6 @@
 			update_scene(arrow);
 		}
 	};
-	//console.assert()
 	function onClick(click) {
 		console.log("clicked");
 		var div = click.target;
@@ -724,7 +684,7 @@
 	};
 	function obj_config_dimensions() {
 		//organize into object
-		//how does this deal with rotations??? make all dims the size of the smallest possible containing length
+		//to deal with rotations, make all dims the size of the smallest possible containing length or auto
 		var height = window.innerHeight;
 		var width = window.innerWidth;
 		var BOTTOM_WALL_IMTOP = height - (width*.1) + (width*.01);
@@ -840,11 +800,10 @@
 		// Rotate the center sq to reflect change in direction
 		if (arrow) {
 			console.log("arrow: " + arrow);
+
 			var center = document.getElementById("center");
-			//center.className = center.className.replace("up", "");
-			//var i = center.style.transform.indexOf("deg)");
-			var current_transform_deg = Number(center.style.transform.replace("rotate(", "").replace("deg)", "")); //.substr(0, i + "deg)".length
-			//console.log(current_transform_deg);
+
+			var current_transform_deg = Number(center.style.transform.replace("rotate(", "").replace("deg)", ""));
 			var transforms = ["transform", "MozTransform", "WebkitTransform", "oTransform"];
 			function changeTransform(change_in_deg) {
 				center.style.transform = "rotate(" + (current_transform_deg + change_in_deg).toString() + "deg)";
@@ -854,14 +813,8 @@
 			};
 
 			if (arrow === "up") {
-				/*var center_c = document.getElementById("center_container");
 				//budge upwards
 				//no rotation
-				//center.className = center.className + " up";
-				center_c.style.transform = "translateY(-10px)";
-				center_c.style.MozTransform = "translateY(-10px)";
-				center_c.style.WebkitTransform = "translateY(-10px)";
-				center_c.style.oTransform = "translateY(-10px)";*/
 			} else if (arrow === "right") {
 				changeTransform(90);
 			} else if (arrow === "left") {
@@ -917,9 +870,9 @@
 			flower.style.maxHeight = "calc(100vh - 25vw)";
 			flower.style.maxWidth = "calc(100vw - 25vw)";
 			flower.zIndex = 15;
-			document.body.appendChild(flower);//getElementById("center_container").appendChild(flower);
+			document.body.appendChild(flower);
 
-			//document.getElementById("center_text").innerHTML = "Finish";
+
 			center.style.transition = "all ease-in-out 3s";
 			changeTransform(3600);
 			var paths = document.getElementsByClassName("path");
@@ -948,38 +901,24 @@
 			rug.className = "rug";
 			rug.style.position = "absolute";
 			rug.style.alignSelf = "center";
-			//rug.style.flexDirection = "column";
+			rug.style.height = "calc(100vh - 20vw)";
+			rug.style.width = "auto";
+			rug.style.maxWidth = "calc(100vh - 20vw)";
+
 			//make rug face north
 			var n_dir = maze.arrow(maze.NORTH);
 			if(n_dir === "up") {
 				setRotation(rug, 0);
-				rug.style.height = "calc(100vh - 20vw)";
-				rug.style.width = "auto";
-				rug.style.maxWidth = "calc(100vh - 20vw)";
 			} else if (n_dir === "down") {
 				setRotation(rug, 180);
-				rug.style.height = "calc(100vh - 20vw)";
-				rug.style.width = "auto";
-				rug.style.maxWidth = "calc(100vh - 20vw)";
 			} else if (n_dir === "right") {
 				setRotation(rug, 90);
-				/*rug.style.width = "calc(100vh - 20vw)";
-				rug.style.height = "auto";
-				rug.style.maxHeight = "calc(100vh - 20vw)";*/
-				rug.style.height = "calc(100vh - 20vw)";
-				rug.style.width = "auto";
-				rug.style.maxWidth = "calc(100vh - 20vw)";
 			} else if (n_dir === "left") {
 				setRotation(rug, -90);
-				/*rug.style.width = "calc(100vh - 20vw)";
-				rug.style.height = "auto";
-				rug.style.maxHeight = "calc(100vh - 20vw)";*/
-				rug.style.height = "calc(100vh - 20vw)";
-				rug.style.width = "auto";
-				rug.style.maxWidth = "calc(100vh - 20vw)";
 			}
 			document.getElementById("center_container").appendChild(rug);
 
+			//beginning of maze: only time that wall behind you is blocked
 			if (maze.eq(maze.direction, maze.NORTH)) {
 				if (MAZE_HEIGHT === 4) {
 					document.getElementById("center_text").innerHTML = "Arrow keys or click to move.";
@@ -987,27 +926,8 @@
 					document.getElementById("center_text").innerHTML = "Maze has grown.";
 				}
 				var el = document.getElementById("bottom");
-				el.className = el.className.replace("move", "block pulse"); 
-			} else {
-			//rugs
-			//vase with a flower
-			//FTP graffiti
-			//at finish whole place turns blue, spawn in new maze
-			//document.getElementById("center_text").innerHTML = "Start";
-			/*console.log("in start");
-			console.log(maze.location);
-			console.log(maze.start);
-			var arr = maze.arrow(maze.SOUTH);
-			if (arr === "up") {
-				arr = "top";
-			}
-			console.log(arr);
-			var el = document.getElementById(arr);
-			el.style.animation = "";
-			setTimeout(10,() => {el.style.animation = "pulse 6s 1";})*/
-			//el.className = el.className.concat(" ping");
-			//setTimeout(10000, ()=>{el.className.replace("ping", "")});
-			}
+				el.className = el.className.replace("move", "block"); 
+			} 
 		} else  {
 			document.getElementById("center_text").innerHTML = "";
 			// Can always go backwards
@@ -1016,7 +936,6 @@
 		}
 
 		// Decorations
-		// Add new decor
 		if (maze.location.decor) {
 			maze.location.decor.forEach((obj) => {
 				var im = new Image();
@@ -1037,9 +956,7 @@
 						room_placement.push(maze.arrow(maze.WEST));
 					} else if (maze.eq(d,maze.EAST)) {
 						room_placement.push(maze.arrow(maze.EAST));
-					} /*else if (d === "center") {
-						room_placement.push("center");
-					}*/
+					}
 
 					console.log(room_placement);
 				});
@@ -1079,7 +996,7 @@
 			});
 		}
 	};
-	//console.log(maze.canMove);
+	
 	update_scene();
 
 	document.addEventListener('keydown', onArrow);
