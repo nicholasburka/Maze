@@ -131,6 +131,8 @@
 			align-self: center;
 			width: 20vw;
 			height: 20vw;
+			max-width: calc(100vh - 25vw);
+			max-height: calc(100vh - 25vw);
 			/*top: 20vw;
 			left: 40vw;*/
 			z-index: 1;
@@ -156,6 +158,30 @@
 			height: calc(100vh - 20vw);
 			align-items: center center;
 			justify-content: center;
+		}
+		.rug {
+			max-width: calc(100vh - 25vw);
+			max-height: calc(100vh - 25vw);
+			/*opacity: 100;
+			transition: opacity .5s;*/
+			animation: fadein .5s 1;
+		}
+		.flower {
+			animation: appear 3s 1;
+		}
+		@keyframes appear {
+			0% {
+				opacity: 0%;
+			}
+			50% {
+				opacity: 70%;
+			}
+			80% {
+				opacity: 100%;
+			}
+			100% {
+				opacity: 0%;
+			}
 		}
 		.oblique {
 			opacity: 100;
@@ -423,7 +449,10 @@
 
 
 		///////Decor 
-		var rug;
+		var rugs = ["rug1.png", "rug2.png", "rug3.png"];
+		this.rug = rugs[rand_from_0(rugs.length)];
+		var flowers = ["flower1.png", "flower2.png", "flower3.png", "flower4.png", "flower5.png"];
+		this.flower = flowers[rand_from_0(flowers.length)];
 		var ftp = new Decor("ftp.png");
 		var BLM = new Decor("blm.png");
 		var crouch = new Decor("crouchingflower.png");
@@ -478,7 +507,6 @@
 			console.log(item.cardinalPlacement[1]);
 			track[rand].decor.push(item);
 		});
-
 
 		///////Board
 
@@ -786,6 +814,29 @@
 		el.style.oTransform = "rotate(" + deg.toString() + "deg)";
 	};
 	function update_scene(arrow) {
+		// Remove any decor from last loc
+		var decor = document.getElementsByClassName("object");
+		console.log("decorations");
+		console.log(decor);
+		if (decor) {
+			// for loop iterates through HTMLCollection (does not have forEach)
+			var a = [];
+			for (var o of decor) {
+				console.log("removing decor ob");
+				console.log(o);
+				a.push(o);
+			}
+			a.map((el) => {document.body.removeChild(el)});
+		}
+		var rug = document.getElementsByClassName("rug")[0];
+		if (rug) {
+			document.getElementById("center_container").removeChild(rug);
+		}
+		var flower = document.getElementsByClassName("flower")[0];
+		if (flower) {
+			document.body.removeChild(flower);
+		}
+
 		// Rotate the center sq to reflect change in direction
 		if (arrow) {
 			console.log("arrow: " + arrow);
@@ -853,6 +904,21 @@
 
 		//   Finish
 		if (maze.eq(maze.location.coord, maze.finish)) {
+			var flower = new Image();
+			flower.src = maze.flower;
+			flower.style.position = "absolute";
+			flower.style.display = "block";
+			//flower.style.alignSelf = "left";
+			flower.style.top = "15vw";
+			flower.style.left = (Math.floor(Math.random()*2) >= 1) ? "15vw" : "65vw";
+			flower.className = "flower";
+			flower.style.width = "20vw";
+			flower.style.height = "auto";
+			flower.style.maxHeight = "calc(100vh - 25vw)";
+			flower.style.maxWidth = "calc(100vw - 25vw)";
+			flower.zIndex = 15;
+			document.body.appendChild(flower);//getElementById("center_container").appendChild(flower);
+
 			//document.getElementById("center_text").innerHTML = "Finish";
 			center.style.transition = "all ease-in-out 3s";
 			changeTransform(3600);
@@ -873,21 +939,61 @@
 				update_scene();
 			}, 3000);
 		//   Start
-		} else if (maze.eq(maze.location.coord, maze.start.coord) && (maze.eq(maze.direction, maze.NORTH))) {
-			if (MAZE_HEIGHT === 4) {
-				document.getElementById("center_text").innerHTML = "Arrow keys or click to move.";
-			} else {
-				document.getElementById("center_text").innerHTML = "Maze has grown.";
+		} else if (maze.eq(maze.location.coord, maze.start.coord)) {
+
+			//display rug
+			var rug = new Image();
+			rug.src = maze.rug;
+			rug.zIndex = -1;
+			rug.className = "rug";
+			rug.style.position = "absolute";
+			rug.style.alignSelf = "center";
+			//rug.style.flexDirection = "column";
+			//make rug face north
+			var n_dir = maze.arrow(maze.NORTH);
+			if(n_dir === "up") {
+				setRotation(rug, 0);
+				rug.style.height = "calc(100vh - 20vw)";
+				rug.style.width = "auto";
+				rug.style.maxWidth = "calc(100vh - 20vw)";
+			} else if (n_dir === "down") {
+				setRotation(rug, 180);
+				rug.style.height = "calc(100vh - 20vw)";
+				rug.style.width = "auto";
+				rug.style.maxWidth = "calc(100vh - 20vw)";
+			} else if (n_dir === "right") {
+				setRotation(rug, 90);
+				/*rug.style.width = "calc(100vh - 20vw)";
+				rug.style.height = "auto";
+				rug.style.maxHeight = "calc(100vh - 20vw)";*/
+				rug.style.height = "calc(100vh - 20vw)";
+				rug.style.width = "auto";
+				rug.style.maxWidth = "calc(100vh - 20vw)";
+			} else if (n_dir === "left") {
+				setRotation(rug, -90);
+				/*rug.style.width = "calc(100vh - 20vw)";
+				rug.style.height = "auto";
+				rug.style.maxHeight = "calc(100vh - 20vw)";*/
+				rug.style.height = "calc(100vh - 20vw)";
+				rug.style.width = "auto";
+				rug.style.maxWidth = "calc(100vh - 20vw)";
 			}
-			var el = document.getElementById("bottom");
-			el.className = el.className.replace("move", "block pulse");
-		//    
-		} else if ((maze.eq(maze.location.coord, maze.start.coord))) {
+			document.getElementById("center_container").appendChild(rug);
+
+			if (maze.eq(maze.direction, maze.NORTH)) {
+				if (MAZE_HEIGHT === 4) {
+					document.getElementById("center_text").innerHTML = "Arrow keys or click to move.";
+				} else {
+					document.getElementById("center_text").innerHTML = "Maze has grown.";
+				}
+				var el = document.getElementById("bottom");
+				el.className = el.className.replace("move", "block pulse"); 
+			} else {
 			//rugs
 			//vase with a flower
 			//FTP graffiti
 			//at finish whole place turns blue, spawn in new maze
-			document.getElementById("center_text").innerHTML = "Start";
+			//document.getElementById("center_text").innerHTML = "Start";
 			/*console.log("in start");
 			console.log(maze.location);
 			console.log(maze.start);
@@ -901,6 +1007,7 @@
 			setTimeout(10,() => {el.style.animation = "pulse 6s 1";})*/
 			//el.className = el.className.concat(" ping");
 			//setTimeout(10000, ()=>{el.className.replace("ping", "")});
+			}
 		} else  {
 			document.getElementById("center_text").innerHTML = "";
 			// Can always go backwards
@@ -909,20 +1016,6 @@
 		}
 
 		// Decorations
-		// Remove any decor from last loc
-		var decor = document.getElementsByClassName("object");
-		console.log("decorations");
-		console.log(decor);
-		if (decor) {
-			// for loop iterates through HTMLCollection (does not have forEach)
-			var a = [];
-			for (var o of decor) {
-				console.log("removing decor ob");
-				console.log(o);
-				a.push(o);
-			}
-			a.map((el) => {document.body.removeChild(el)});
-		}
 		// Add new decor
 		if (maze.location.decor) {
 			maze.location.decor.forEach((obj) => {
